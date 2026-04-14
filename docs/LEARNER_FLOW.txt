@@ -1,0 +1,109 @@
+Settlement Alert Agent — learner flow (technical, short)
+=======================================================
+
+1. END-TO-END FLOW
+------------------
+
+  Mock fail data (mock_dtcc)
+       |
+       v
+  [1 Monitor]  --> ingest fails, Rule 204 / deadline context
+       |
+       v
+  [2 Reason]   --> score each fail; LanceDB counterparty lookup per fail
+       |
+       v
+  [3 Prioritise] --> sort by score, assign queue rank
+       |
+       v
+  [4 Recommend] --> top N fails: action type + draft comms via Ollama (Mistral)
+       |
+       v
+  [5 Execute]  --> in full prod: apply decisions; here mostly tied to UI state
+
+  Human (Streamlit): Approve / Reject recommendations after step 4.
+
+  One "agent cycle" = one pass through steps 1–5. LangGraph defines the order.
+
+
+2. SIMPLE ARCHITECTURE (TEXT)
+-----------------------------
+
+  LanceDB (counterparty patterns) ----+
+                                       |
+  Mock DTCC fails -----------------> [ LangGraph pipeline ]
+                                       |
+                                       +----> Ollama (Mistral) for drafts
+                                       |
+                                       v
+                                   Streamlit UI (approve / reject)
+
+
+3. TERMINOLOGY (SHORT)
+----------------------
+
+Agent
+  A named step with inputs, logic, outputs. Not always an LLM — here Monitor,
+  Reason, Prioritise are mostly rules + data; Recommend uses the LLM heavily.
+
+Agent orchestration
+  Choosing which steps run, in what order, and what state flows between them.
+  This project uses LangGraph: a graph of nodes (your functions) and edges.
+
+LangGraph
+  Library to build that graph and run it. StateGraph + compile + invoke = one cycle.
+
+LLM (Large Language Model)
+  Model that generates text from prompts. Here: Mistral, run locally via Ollama.
+
+Ollama
+  Local runtime for open models; serves an HTTP API (e.g. localhost:11434). No
+  cloud API keys required for the default setup.
+
+RAG (Retrieval-Augmented Generation)
+  Retrieve relevant context before or while generating text. This repo uses a
+  light pattern: retrieve counterparty profile from LanceDB, then score and
+  recommend — not full document RAG over PDFs.
+
+Vector DB / embeddings
+  Store vectors for similarity search. LanceDB holds embedded counterparty text;
+  search picks a profile (demo uses a simple embedding, not production-grade).
+
+Human-in-the-loop (HITL)
+  System proposes actions; a human must approve or reject before they count as
+  final. Implemented in the Streamlit workbench.
+
+Stateful vs stateless
+  Stateful: earlier steps in the same run affect later ones via shared state.
+  LangGraph carries fields (e.g. raw_fails -> scored -> queue -> recommendations)
+  through one cycle.
+
+Mock data
+  Synthetic but realistic fails for demos — not a live exchange or DTCC feed.
+
+DuckDB (alternate code path)
+  Used in agents/graph.py + data/queue_manager.py. The Streamlit app uses
+  agents/agent_loop.py with mock data + LanceDB; DuckDB is optional for that path.
+
+Langfuse
+  Optional observability/tracing for LLM apps — mentioned in docs elsewhere;
+  not wired in this repository unless you add it.
+
+
+4. ONE-PARAGRAPH MENTAL MODEL
+-----------------------------
+
+You initialise counterparty knowledge (LanceDB). Each cycle: Monitor loads and
+tags fails, Reason scores using rules plus retrieved counterparty intel,
+Prioritise ranks the queue, Recommend calls Mistral for drafts and structured
+actions on the top items, Execute is where production would persist outcomes —
+the UI focuses on showing recommendations and recording your approve/reject
+decisions.
+
+
+5. WHAT THIS PROJECT IS NOT
+-----------------------------
+
+  - Not a general chatbot: the main UX is a workbench, not open-ended chat.
+  - Not enterprise document RAG: knowledge is structured counterparty data.
+  - Not connected to real settlement systems out of the box — mock data only.
