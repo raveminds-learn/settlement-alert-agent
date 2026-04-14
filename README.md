@@ -1,5 +1,4 @@
 # ⚡ RaveMinds Settlement Alert Agent
-**RaveMinds Series 2 · Project 2 of 3**
 
 > T+1 cut the time to resolve settlement fails in half — but ops teams are still managing them manually with the same human reaction time they had under T+2. This agent fixes that.
 
@@ -28,19 +27,11 @@ An autonomous agent that:
 
 ---
 
-## AI Pattern: Autonomous Agents with Human in the Loop
+## Human-in-the-loop
 
-This is the hero concept of this project — and what separates it from every Series 1 build.
+The agent proposes actions and draft communications; **you** approve or reject before anything is treated as executed. That keeps accountability explicit — important in regulated operations.
 
-| | Series 1 (AskOps etc.) | This project |
-|---|---|---|
-| **Trigger** | Human asks a question | Agent acts on its own initiative |
-| **Loop** | Request → Response → Done | Monitor → Reason → Act → Loop forever |
-| **Human role** | Questioner | Decision-maker (approve/reject) |
-| **State** | Stateless per call | Stateful across cycles |
-| **Pattern** | Reactive | Proactive |
-
-The human-in-the-loop is not a limitation — it is the correct architecture for regulated environments where every consequential action needs human accountability.
+**Characteristics:** proactive monitoring (not only on-demand), state carried across cycles, multi-factor prioritisation, and counterparty context from LanceDB.
 
 ---
 
@@ -77,16 +68,6 @@ Each fail is scored 0-100 across five dimensions:
 | Cascade risk | 20 | Has downstream trades × multiplier |
 | Days failing | 10 | Days × 2, capped at 10 |
 | Counterparty resolution speed | 5 | Slow counterparties score higher urgency |
-
----
-
-## New Concepts vs Series 1
-
-- **Agentic loop** — graph runs continuously, never terminates
-- **Human-in-the-loop architecture** — approval gate is first-class in the pipeline
-- **Multi-dimensional autonomous prioritisation** — not routing, judgment
-- **Continuous stateful memory** — queue state persists and evolves across cycles
-- **Institutional knowledge encoding** — counterparty patterns in LanceDB
 
 ---
 
@@ -133,9 +114,12 @@ settlement-alert-agent/
 
 ### Windows
 
-Double-click `start.bat` (starts Ollama if needed, installs dependencies, opens `http://localhost:8501`). Use `stop.bat` to stop Streamlit and Ollama.
+**Launcher scripts**
 
-In the app: **Initialise Knowledge Store**, then **Run Agent Cycle**.
+- **`start.bat`** — Verifies Python and Ollama, starts `ollama serve` if needed, pulls `mistral` when missing, installs `requirements.txt`, opens the browser, then runs Streamlit on port **8501**.
+- **`stop.bat`** — Stops Streamlit and anything listening on **8501**, then stops the Ollama process.
+
+Run `start.bat` from the project folder (or double-click it). In the app: **Initialise Knowledge Store**, then **Run Agent Cycle**.
 
 ### macOS / Linux
 
@@ -152,19 +136,6 @@ streamlit run ui/app.py --server.port 8501
 ## Mock Data
 
 Mock settlement fails across US equities, corporate bonds, named counterparties, varied fail reasons, and regulatory urgency levels. See `data/mock_dtcc.py`.
-
----
-
-## Series Context
-
-```
-RaveMinds Series 2
-├── Project 1: Trade Compliance Copilot   — RAG over private documents
-├── Project 2: RaveMinds Settlement Alert Agent      — Autonomous agents + HITL  ← YOU ARE HERE
-└── Project 3: TBD                        — Generative reporting
-```
-
-**Series arc:** Know → Act → Produce
 
 ---
 
